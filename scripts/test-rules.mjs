@@ -9,7 +9,15 @@
 import { initializeApp as initAdmin } from "firebase-admin/app";
 import { getFirestore as adminDb, Timestamp } from "firebase-admin/firestore";
 import { deleteApp, initializeApp } from "firebase/app";
-import { connectAuthEmulator, getAuth, sendSignInLinkToEmail, signInWithEmailLink } from "firebase/auth";
+import {
+  connectAuthEmulator,
+  createUserWithEmailAndPassword,
+  getAuth,
+  OAuthProvider,
+  sendSignInLinkToEmail,
+  signInWithCredential,
+  signInWithEmailLink,
+} from "firebase/auth";
 import {
   connectFirestoreEmulator,
   doc,
@@ -60,6 +68,30 @@ async function asUser(email) {
   const { oobCodes } = await res.json();
   const link = oobCodes.filter((c) => c.email === email).pop().oobLink;
   await signInWithEmailLink(auth, email, link);
+  return { app, auth, db, uid: auth.currentUser.uid, email };
+}
+
+function emulatorApp(name) {
+  const app = initializeApp({ apiKey: "demo-key", projectId: PROJECT }, name + Math.random());
+  const auth = getAuth(app);
+  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+  const db = getFirestore(app);
+  connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  return { app, auth, db };
+}
+
+/** Inicia sesión con una cuenta Microsoft simulada (el emulador acepta tokens sin firmar). */
+async function asMicrosoftUser(email) {
+  const { app, auth, db } = emulatorApp(email);
+  const idToken = JSON.stringify({ sub: "ms-" + email, email });
+  await signInWithCredential(auth, new OAuthProvider("microsoft.com").credential({ idToken }));
+  return { app, auth, db, uid: auth.currentUser.uid, email };
+}
+
+/** Cuenta con contraseña y correo SIN verificar (no debería poder votar). */
+async function asUnverifiedUser(email) {
+  const { app, auth, db } = emulatorApp(email);
+  await createUserWithEmailAndPassword(auth, email, "secreto-123");
   return { app, auth, db, uid: auth.currentUser.uid, email };
 }
 
@@ -171,6 +203,15 @@ await expect(`Conteo correcto (c1 = ${tally?.count})`, true, async () => {
   if (tally?.count !== 2) throw new Error("conteo inesperado");
 });
 
+// Cuentas Microsoft institucionales y correos sin verificar
+const msUser = await asMicrosoftUser("lucia@unbosque.edu.co");
+await expect("Cuenta Microsoft institucional puede votar", true, () => vote(msUser, "c2"));
+await expect("Cuenta Microsoft no puede votar dos veces", false, () => vote(msUser, "c1"));
+const msOutsider = await asMicrosoftUser("alguien@hotmail.com");
+await expect("Cuenta Microsoft de otro dominio no puede votar", false, () => vote(msOutsider, "c1"));
+const unverified = await asUnverifiedUser("falso@unbosque.edu.co");
+await expect("Correo institucional sin verificar no puede votar", false, () => vote(unverified, "c1"));
+
 // Padrón
 await setPhase("votacion", { restrictToRoll: true });
 const carla = await asUser("carla@unbosque.edu.co");
@@ -199,6 +240,6 @@ await setPhase("votacion", { resultsPublished: true });
 const eva = await asUser("eva@unbosque.edu.co");
 await expect("Con resultados publicados ya no se vota", false, () => vote(eva, "c1"));
 
-for (const u of [ana, beto, intruso, adminUser, carla, dani, eva]) await deleteApp(u.app);
+for (const u of [ana, beto, intruso, adminUser, carla, dani, eva, msUser, msOutsider, unverified]) await deleteApp(u.app);
 console.log(`\n${passed} pruebas correctas, ${failed} fallidas`);
 process.exit(failed ? 1 : 0);

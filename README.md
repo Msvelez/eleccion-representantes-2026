@@ -118,6 +118,19 @@ npm run dev          # → http://localhost:3000
 7. Entra a `/admin → Fases y fechas`, revisa las fechas y guarda. Esto crea `config/settings`; mientras no exista, la app usa los valores de [src/lib/settings.ts](src/lib/settings.ts).
 8. `npm run dev`, o despliega en Vercel (Next.js) con las mismas variables de entorno.
 
+### Entrar con la cuenta Microsoft de la universidad
+
+El correo de UnBosque es Outlook (Microsoft 365) y **bloquea los enlaces mágicos de Firebase**. Por eso los estudiantes entran con su cuenta institucional de Microsoft:
+
+1. En [portal.azure.com](https://portal.azure.com), con la cuenta de la universidad: **Microsoft Entra ID → Registros de aplicaciones → Nuevo registro**.
+   - Tipo de cuenta: **Solo cuentas de este directorio organizativo (inquilino único)**. Es obligatorio: las reglas confían en que solo cuentas de UnBosque pueden entrar por Microsoft.
+   - URI de redirección (Web): `https://mision-representante.firebaseapp.com/__/auth/handler`
+2. Copia el **Id. de aplicación (cliente)** y crea un secreto en **Certificados y secretos**.
+3. En Firebase → Authentication → Método de acceso → **Microsoft**: pega el ID y el secreto, y activa.
+4. Descomenta `NEXT_PUBLIC_MICROSOFT_TENANT_ID` en [.env.production](.env.production) y publica de nuevo las reglas de Firestore.
+
+El enlace por correo sigue disponible como alternativa (útil, por ejemplo, para administradores con Gmail).
+
 ### Publicar en GitHub Pages
 
 El sitio se publica solo en **https://msvelez.github.io/eleccion-representantes-2026/** cada vez que se sube un cambio a `main` ([.github/workflows/deploy.yml](.github/workflows/deploy.yml)). La configuración pública de Firebase y la subcarpeta del sitio están en [.env.production](.env.production).

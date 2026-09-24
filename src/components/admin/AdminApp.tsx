@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import type { User } from "firebase/auth";
 import { useElection } from "@/hooks/useElection";
-import { signOut } from "@/lib/auth";
+import { isVerifiedUser, signOut } from "@/lib/auth";
 import { isAdminEmail, watchAllCandidates, watchTallies } from "@/lib/data";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import type { Candidate } from "@/lib/types";
@@ -165,7 +165,7 @@ export function AdminApp() {
     return <Centered><p className="text-muted">Firebase no está configurado (ver README).</p></Centered>;
   }
 
-  if (user?.email && user.emailVerified) {
+  if (isVerifiedUser(user)) {
     return <AdminGuard user={user as User & { email: string }} />;
   }
 

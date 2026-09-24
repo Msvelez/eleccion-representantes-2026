@@ -6,6 +6,7 @@ import { useElection } from "@/hooks/useElection";
 import { useApprovedCandidates } from "@/hooks/useCandidates";
 import { useUrlAction } from "@/hooks/useUrlAction";
 import { getOwnVote } from "@/lib/data";
+import { isVerifiedUser } from "@/lib/auth";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Countdown } from "@/components/ui/Countdown";
@@ -38,7 +39,7 @@ export function Votacion() {
   }, [action, candidateParam, candidates]);
 
   useEffect(() => {
-    if (!user?.email || !user.emailVerified) return setHasVoted(false);
+    if (!isVerifiedUser(user)) return setHasVoted(false);
     getOwnVote(user.email)
       .then((v) => setHasVoted(Boolean(v)))
       .catch(() => setHasVoted(false));

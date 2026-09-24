@@ -18,7 +18,9 @@ service cloud.firestore {
     function verified() {
       return signedIn()
         && request.auth.token.email != null
-        && request.auth.token.email_verified == true;
+        && (request.auth.token.email_verified == true
+          // Cuenta Microsoft de la universidad (app de un solo inquilino en Microsoft Entra).
+          || request.auth.token.firebase.sign_in_provider == 'microsoft.com');
     }
 
     function isAdmin() {
