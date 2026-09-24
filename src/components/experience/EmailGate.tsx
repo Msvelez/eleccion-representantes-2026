@@ -94,7 +94,19 @@ export function EmailGate({ returnTo, institutional = true, title, description, 
             Enviamos un enlace de acceso a <strong className="font-medium text-paper">{sentTo}</strong>. Ábrelo en este
             mismo navegador para continuar. Esta pantalla se actualizará sola.
           </p>
-          <p className="label-hud text-muted">¿No llega? Revisa spam o correo no deseado.</p>
+          <div className="glass mx-auto max-w-md rounded-2xl p-4 text-left text-sm">
+            <p className="label-hud mb-2 text-neon">¿No lo ves? Puede tardar unos minutos</p>
+            <ul className="list-disc space-y-1 pl-5 text-muted">
+              <li>
+                Busca en <strong className="font-medium text-paper">Correo no deseado</strong> y en la pestaña{" "}
+                <strong className="font-medium text-paper">Otros</strong> de Outlook.
+              </li>
+              <li>
+                Lo envía <strong className="font-medium text-paper">noreply@{process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "firebaseapp.com"}</strong>
+              </li>
+              <li>Si está en no deseado, márcalo como seguro y abre el enlace desde ahí.</li>
+            </ul>
+          </div>
           <div className="flex flex-wrap justify-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => setSentTo(null)}>
               Usar otro correo
