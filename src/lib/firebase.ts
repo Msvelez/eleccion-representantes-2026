@@ -17,6 +17,12 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+/**
+ * Cloud Storage requiere el plan Blaze en proyectos nuevos. Si está desactivado, la foto se
+ * comprime en el navegador y se guarda dentro del documento del candidato, y el video va como enlace.
+ */
+export const storageEnabled = process.env.NEXT_PUBLIC_USE_STORAGE === "true";
+
 export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 
 interface Services {

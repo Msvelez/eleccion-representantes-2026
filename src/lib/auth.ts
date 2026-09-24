@@ -16,7 +16,8 @@ const EMAIL_KEY = "mision:emailForSignIn";
 export async function sendMagicLink(email: string, returnTo: string): Promise<void> {
   const { auth } = firebase();
   const normalized = email.trim().toLowerCase();
-  const url = `${window.location.origin}/verificar?next=${encodeURIComponent(returnTo)}`;
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const url = `${window.location.origin}${basePath}/verificar/?next=${encodeURIComponent(returnTo)}`;
   await sendSignInLinkToEmail(auth, normalized, { url, handleCodeInApp: true });
   try {
     window.localStorage.setItem(EMAIL_KEY, normalized);

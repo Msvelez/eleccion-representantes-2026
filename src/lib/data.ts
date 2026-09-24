@@ -17,7 +17,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
-import { firebase } from "./firebase";
+import { firebase, storageEnabled } from "./firebase";
 import { DEFAULT_SETTINGS } from "./settings";
 import type {
   Candidate,
@@ -156,6 +156,22 @@ export function uploadCandidateFile(
   });
 }
 
+/** Reduce la foto a un JPEG liviano (data URL) para guardarla en Firestore sin usar Storage. */
+export async function compressPhoto(file: File, maxSide = 720): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  for (const quality of [0.82, 0.7, 0.55, 0.4]) {
+    const dataURL = canvas.toDataURL("image/jpeg", quality);
+    if (dataURL.length < 300_000) return dataURL;
+  }
+  throw new Error("No pudimos comprimir la foto. Intenta con otra imagen.");
+}
+
 export interface ApplicationInput {
   name: string;
   semester: number;
@@ -176,12 +192,14 @@ export async function submitApplication(
   const user = auth.currentUser;
   if (!user?.email) throw new Error("Debes verificar tu correo institucional antes de postularte.");
 
-  onProgress("Subiendo foto", 0);
-  const photo = await uploadCandidateFile(user.uid, "photo", input.photo, (p) => onProgress("Subiendo foto", p));
+  onProgress("Preparando foto", 0);
+  const photo = storageEnabled
+    ? await uploadCandidateFile(user.uid, "photo", input.photo, (p) => onProgress("Subiendo foto", p))
+    : { url: await compressPhoto(input.photo), path: "" };
 
   let videoURL = "";
   let videoPath = "";
-  if (input.videoType === "file" && input.videoFile) {
+  if (storageEnabled && input.videoType === "file" && input.videoFile) {
     const video = await uploadCandidateFile(user.uid, "video", input.videoFile, (p) =>
       onProgress("Subiendo video", p),
     );

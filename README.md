@@ -118,6 +118,14 @@ npm run dev          # → http://localhost:3000
 7. Entra a `/admin → Fases y fechas`, revisa las fechas y guarda. Esto crea `config/settings`; mientras no exista, la app usa los valores de [src/lib/settings.ts](src/lib/settings.ts).
 8. `npm run dev`, o despliega en Vercel (Next.js) con las mismas variables de entorno.
 
+### Publicar en GitHub Pages
+
+El sitio se publica solo en **https://msvelez.github.io/eleccion-representantes-2026/** cada vez que se sube un cambio a `main` ([.github/workflows/deploy.yml](.github/workflows/deploy.yml)). La configuración pública de Firebase y la subcarpeta del sitio están en [.env.production](.env.production).
+
+- En GitHub → *Settings → Pages → Source* debe estar seleccionado **GitHub Actions**.
+- En Firebase → *Authentication → Settings → Authorized domains* debe estar `msvelez.github.io`.
+- Sin plan Blaze no hay Cloud Storage: con `NEXT_PUBLIC_USE_STORAGE=false` la foto se comprime y se guarda en Firestore, y el video se comparte como enlace. Con Blaze, pon `true` y despliega `storage.rules`.
+
 ---
 
 ## Panel de administración (`/admin`)

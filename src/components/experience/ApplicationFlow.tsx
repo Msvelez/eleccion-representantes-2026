@@ -6,6 +6,7 @@ import clsx from "clsx";
 import type { User } from "firebase/auth";
 import { friendlyError } from "@/lib/auth";
 import { getOwnApplication, submitApplication } from "@/lib/data";
+import { storageEnabled } from "@/lib/firebase";
 import type { Candidate, VideoType } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { CandidateCard } from "./CandidateCard";
@@ -334,14 +335,16 @@ function ApplicationForm({ user, onDone }: { user: User & { email: string }; onD
                   </span>
                   <span className="block text-sm text-muted">Un video corto ayuda a que te conozcan mejor.</span>
                 </legend>
-                <div className="grid gap-2 sm:grid-cols-3">
+                <div className={clsx("grid gap-2", storageEnabled ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
                   {(
                     [
                       ["none", "Sin video"],
                       ["link", "Pegar enlace"],
                       ["file", "Subir archivo"],
                     ] as const
-                  ).map(([value, label]) => (
+                  )
+                    .filter(([value]) => storageEnabled || value !== "file")
+                    .map(([value, label]) => (
                     <label key={value} className="cursor-pointer">
                       <input
                         type="radio"
