@@ -1,0 +1,35 @@
+{
+  "name": "mision-representante",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plataforma de elección de representantes estudiantiles de Creación Digital — Universidad El Bosque",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "emulators": "npx firebase-tools@latest emulators:start --project demo-mision-representante",
+    "seed": "node scripts/seed-emulator.mjs",
+    "deploy:rules": "npx firebase-tools@latest deploy --only firestore:rules,storage",
+    "test:rules": "node scripts/test-rules.mjs"
+  },
+  "dependencies": {
+    "canvas-confetti": "^1.9.4",
+    "clsx": "^2.1.1",
+    "firebase": "^12.19.0",
+    "motion": "^13.4.3",
+    "next": "^16.3.6",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "firebase-admin": "^14.5.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2"
+  }
+}

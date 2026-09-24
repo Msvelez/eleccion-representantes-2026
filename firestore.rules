@@ -1,0 +1,152 @@
+rules_version = '2';
+
+// Misión Representante — reglas de seguridad de Firestore.
+// Toda la lógica crítica (fechas, un voto por correo, dominios institucionales)
+// se valida aquí, en el servidor, no solo en la interfaz.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ───────────── Helpers ─────────────
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function verified() {
+      return signedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return verified() && exists(/databases/$(database)/documents/admins/$(userEmail()));
+    }
+
+    function settings() {
+      return get(/databases/$(database)/documents/config/settings).data;
+    }
+
+    // Correo verificado, de un dominio permitido y (si está activo) presente en el padrón.
+    function institutional() {
+      let s = settings();
+      return verified()
+        && userEmail().split('@')[1] in s.emailDomains
+        && (s.get('restrictToRoll', false) != true || exists(/databases/$(database)/documents/roll/$(userEmail())));
+    }
+
+    function applicationsOpen() {
+      return request.time < settings().applicationsClose;
+    }
+
+    function votingOpen() {
+      let s = settings();
+      return s.get('resultsPublished', false) != true
+        && (s.votingMode == 'open'
+          || (s.votingMode == 'auto' && request.time >= s.votingStart && request.time < s.votingEnd));
+    }
+
+    function validString(value, min, max) {
+      return value is string && value.size() >= min && value.size() <= max;
+    }
+
+    // ───────────── Configuración ─────────────
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ───────────── Administradores ─────────────
+    // El primer administrador se crea desde la consola de Firebase (ver README).
+    match /admins/{email} {
+      allow read: if isAdmin() || (verified() && userEmail() == email);
+      allow write: if isAdmin();
+    }
+
+    // ───────────── Padrón de votantes (opcional) ─────────────
+    match /roll/{email} {
+      allow read: if isAdmin() || (verified() && userEmail() == email);
+      allow write: if isAdmin();
+    }
+
+    // ───────────── Candidatos ─────────────
+    // El id del documento es el uid del postulante → una postulación por cuenta.
+    match /candidates/{uid} {
+      allow read: if (signedIn() && request.auth.uid == uid)
+        || isAdmin()
+        || resource.data.status == 'approved';
+
+      allow create: if institutional()
+        && applicationsOpen()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+          'uid', 'name', 'semester', 'email', 'photoURL', 'photoPath', 'instagram',
+          'motivation', 'contribution', 'videoURL', 'videoPath', 'videoType', 'status', 'createdAt'
+        ])
+        && request.resource.data.uid == uid
+        && request.resource.data.email == userEmail()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && validString(request.resource.data.name, 3, 80)
+        && request.resource.data.semester is int
+        && request.resource.data.semester >= 1 && request.resource.data.semester <= 10
+        && validString(request.resource.data.photoURL, 1, 2048)
+        && validString(request.resource.data.motivation, 20, 1500)
+        && validString(request.resource.data.contribution, 20, 1500)
+        && validString(request.resource.data.instagram, 0, 60)
+        && validString(request.resource.data.videoURL, 0, 2048)
+        && request.resource.data.videoType in ['none', 'file', 'link'];
+
+      // Solo administración cambia estado, comentarios o corrige datos.
+      allow update, delete: if isAdmin();
+    }
+
+    // ───────────── Votos ─────────────
+    // El id del documento ES el correo institucional → un voto por correo.
+    // Crear sobre un documento existente es un "update", que está prohibido.
+    match /votes/{email} {
+      allow read: if isAdmin() || (verified() && userEmail() == email);
+
+      allow create: if institutional()
+        && votingOpen()
+        && email == userEmail()
+        && request.resource.data.keys().hasOnly(['candidateId', 'email', 'uid', 'createdAt'])
+        && request.resource.data.email == email
+        && request.resource.data.candidateId is string
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && get(/databases/$(database)/documents/candidates/$(request.resource.data.candidateId)).data.status == 'approved'
+        // El conteo del candidato debe subir exactamente 1 en el mismo lote.
+        && getAfter(/databases/$(database)/documents/tallies/$(request.resource.data.candidateId)).data.count
+          == (exists(/databases/$(database)/documents/tallies/$(request.resource.data.candidateId))
+            ? get(/databases/$(database)/documents/tallies/$(request.resource.data.candidateId)).data.count
+            : 0) + 1;
+
+      allow update, delete: if false;
+    }
+
+    // ───────────── Conteos por candidato ─────────────
+    // Privados hasta que administración publique resultados.
+    match /tallies/{candidateId} {
+      allow read: if isAdmin();
+
+      allow create, update: if institutional()
+        && votingOpen()
+        && request.resource.data.keys().hasOnly(['count'])
+        && request.resource.data.count == (resource == null ? 0 : resource.data.count) + 1
+        && !exists(/databases/$(database)/documents/votes/$(userEmail()))
+        && existsAfter(/databases/$(database)/documents/votes/$(userEmail()))
+        && getAfter(/databases/$(database)/documents/votes/$(userEmail())).data.candidateId == candidateId;
+
+      allow delete: if false;
+    }
+
+    // ───────────── Resultados publicados ─────────────
+    match /public/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
