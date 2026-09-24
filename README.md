@@ -12,7 +12,7 @@ La plataforma **detecta sola la fase** según las fechas guardadas en Firestore 
 
 | Fase | Cuándo | Qué ve el estudiante |
 |---|---|---|
-| **1 · Convocatoria** | hasta `applicationsClose` (p. ej. 15 oct 00:00) | Hero "¿Quieres representar a Creación Digital?", contador y formulario por pasos con vista previa de la tarjeta |
+| **1 · Convocatoria** | hasta `applicationsClose` (p. ej. 15 oct 00:00, es decir, todo el 14 incluido) | Hero "¿Quieres representar a Creación Digital?", contador y formulario por pasos con vista previa de la tarjeta |
 | **2 · Presentación** | hasta `votingStart` | "MISIÓN COMPLETADA", número de candidatos y galería de perfiles desbloqueables |
 | **3 · Votación** | entre `votingStart` y `votingEnd`, o abierta manualmente | Roster tipo selección de personaje, perfil completo, verificación de correo y confirmación del voto |
 | Escrutinio | votación cerrada, resultados sin publicar | "Contando votos…" |

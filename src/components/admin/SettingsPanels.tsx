@@ -54,7 +54,7 @@ export function DatesPanel() {
   }
 
   const fields = [
-    { key: "applicationsClose", label: "Cierre de postulaciones", hint: "Fase 1 → Fase 2. Ej.: 15 de octubre, 00:00." },
+    { key: "applicationsClose", label: "Cierre de postulaciones", hint: "Fase 1 → Fase 2. Ej.: 15 de octubre, 00:00 (se puede postular todo el 14)." },
     { key: "votingStart", label: "Apertura de votación", hint: "Fase 2 → Fase 3." },
     { key: "votingEnd", label: "Cierre de votación", hint: "Fase 3 → escrutinio." },
   ] as const;
