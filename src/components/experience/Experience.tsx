@@ -80,7 +80,8 @@ export function Experience() {
           <motion.div
             key={phase}
             initial={{ opacity: 0, filter: "blur(12px)" }}
-            animate={{ opacity: 1, filter: "blur(0px)" }}
+            // Al terminar se quita el filtro: un filter en un ancestro rompe los elementos position: fixed.
+            animate={{ opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
             exit={{ opacity: 0, filter: "blur(12px)", scale: 0.98 }}
             transition={{ duration: 0.6 }}
           >

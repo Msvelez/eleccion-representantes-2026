@@ -1,7 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import clsx from "clsx";
 
 interface ModalProps {
@@ -15,9 +16,15 @@ interface ModalProps {
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),textarea,select,iframe,video,[tabindex]:not([tabindex="-1"])';
 
-/** Diálogo accesible: Esc para cerrar, foco atrapado y devuelto al cerrar, scroll bloqueado. */
+/**
+ * Diálogo accesible: Esc para cerrar, foco atrapado y devuelto al cerrar, scroll bloqueado.
+ * Se renderiza en <body> con un portal: si un ancestro tiene transform o filter (p. ej. las
+ * transiciones de fase), un position: fixed quedaría atrapado dentro de ese ancestro.
+ */
 export function Modal({ open, onClose, label, children, className }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -52,7 +59,9 @@ export function Modal({ open, onClose, label, children, className }: ModalProps)
     };
   }, [open]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -88,6 +97,7 @@ export function Modal({ open, onClose, label, children, className }: ModalProps)
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
