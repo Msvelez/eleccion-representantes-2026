@@ -113,6 +113,7 @@ async function setPhase(phase, extra = {}) {
     resultsPublished: false,
     seats: 2,
     allowAnyEmail: false,
+    autoApprove: false,
     emailDomains: ["unbosque.edu.co"],
     restrictToRoll: false,
     eligibleVoters: 0,
@@ -120,12 +121,14 @@ async function setPhase(phase, extra = {}) {
   });
 }
 
-function application(u, overrides = {}) {
-  return setDoc(doc(u.db, "candidates", u.uid), {
+/** Postulación real: tarjeta pública + correo privado en el mismo lote. */
+function application(u, overrides = {}, contactEmail = u.email) {
+  const b = writeBatch(u.db);
+  b.set(doc(u.db, "candidateContacts", u.uid), { email: contactEmail, createdAt: serverTimestamp() });
+  b.set(doc(u.db, "candidates", u.uid), {
     uid: u.uid,
     name: "Estudiante de Prueba",
     semester: 5,
-    email: u.email,
     photoURL: "https://example.com/p.jpg",
     photoPath: `candidates/${u.uid}/photo.jpg`,
     instagram: "",
@@ -138,6 +141,7 @@ function application(u, overrides = {}) {
     createdAt: serverTimestamp(),
     ...overrides,
   });
+  return b.commit();
 }
 
 function vote(u, candidateId, tallyValue = increment(1)) {
@@ -166,7 +170,13 @@ await setPhase("convocatoria");
 await expect("Estudiante institucional puede postularse", true, () => application(ana));
 await expect("No puede postularse dos veces", false, () => application(ana));
 await expect("Correo no institucional no puede postularse", false, () => application(intruso));
-await expect("No puede autoaprobarse", false, () => application(beto, { status: "approved" }));
+await expect("Sin aprobación automática, no puede autoaprobarse", false, () => application(beto, { status: "approved" }));
+await expect("No puede postular con el correo de otra persona", false, () =>
+  application(beto, {}, "otra@unbosque.edu.co"),
+);
+await expect("No puede postularse sin guardar su correo privado", false, () =>
+  setDoc(doc(beto.db, "candidates", beto.uid), { uid: beto.uid, status: "pending" }),
+);
 await expect("No puede postular a nombre de otro correo", false, () => application(beto, { email: "otro@unbosque.edu.co" }));
 await expect("No puede votar durante la convocatoria", false, () => vote(beto, "c1"));
 await expect("Público ve candidatos aprobados", true, () =>
@@ -174,6 +184,16 @@ await expect("Público ve candidatos aprobados", true, () =>
 );
 await expect("Público NO lista todos los candidatos", false, () => getDocs(collection(beto.db, "candidates")));
 await expect("Postulante ve su propia postulación pendiente", true, () => getDoc(doc(ana.db, "candidates", ana.uid)));
+await expect("Postulante ve su propio correo privado", true, () => getDoc(doc(ana.db, "candidateContacts", ana.uid)));
+await expect("Otros NO ven el correo privado de un candidato", false, () =>
+  getDoc(doc(beto.db, "candidateContacts", ana.uid)),
+);
+await setPhase("convocatoria", { autoApprove: true });
+await expect("Con aprobación automática, entra directo a la sala", true, () =>
+  application(beto, { status: "approved" }),
+);
+await expect("Su tarjeta es pública al instante", true, () => getDoc(doc(intruso.db, "candidates", beto.uid)));
+await setPhase("convocatoria");
 await expect("Estudiante no puede cambiar configuración", false, () =>
   updateDoc(doc(ana.db, "config", "settings"), { votingMode: "open" }),
 );

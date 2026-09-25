@@ -66,11 +66,11 @@ batch.set(db.doc(`admins/${adminEmail}`), { addedAt: Timestamp.now() });
 
 candidates.forEach(([name, semester, instagram, motivation, contribution], i) => {
   const id = `demo-${i + 1}`;
+  batch.set(db.doc(`candidateContacts/${id}`), { email: `demo${i + 1}@unbosque.edu.co`, createdAt: Timestamp.now() });
   batch.set(db.doc(`candidates/${id}`), {
     uid: id,
     name,
     semester,
-    email: `demo${i + 1}@unbosque.edu.co`,
     photoURL: "",
     photoPath: "",
     instagram,

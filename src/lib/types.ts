@@ -21,6 +21,8 @@ export interface Settings {
   allowAnyEmail: boolean;
   /** Dominios de correo institucional permitidos (sin @). */
   emailDomains: string[];
+  /** Si es true, las postulaciones se publican al instante en la sala de candidatos (administración puede quitarlas). */
+  autoApprove: boolean;
   /** Si es true, solo los correos cargados en el padrón pueden postularse y votar. */
   restrictToRoll: boolean;
   /** Estudiantes habilitados (opcional, para calcular participación). */

@@ -4,7 +4,8 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import clsx from "clsx";
 import { friendlyError } from "@/lib/auth";
-import { setCandidateStatus } from "@/lib/data";
+import { saveSettings, setCandidateStatus } from "@/lib/data";
+import { useElection } from "@/hooks/useElection";
 import { formatBogota } from "@/lib/settings";
 import type { Candidate, CandidateStatus } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
@@ -21,6 +22,7 @@ const FILTERS: { id: CandidateStatus | "all"; label: string }[] = [
 ];
 
 export function CandidatesPanel({ candidates }: { candidates: Candidate[] }) {
+  const { settings } = useElection();
   const [filter, setFilter] = useState<CandidateStatus | "all">("all");
   const [viewing, setViewing] = useState<Candidate | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -84,6 +86,28 @@ export function CandidatesPanel({ candidates }: { candidates: Candidate[] }) {
           })}
         </div>
       </PanelHeader>
+
+      <section className="glass mb-6 flex flex-wrap items-center justify-between gap-4 rounded-3xl p-5">
+        <div className="max-w-xl space-y-1">
+          <h2 className="text-lg">Publicar postulaciones al instante</h2>
+          <p className="text-sm text-muted">
+            {settings.autoApprove
+              ? "Activado: cada postulación entra directo a la sala de candidatos. Puedes rechazar a alguien para quitarlo."
+              : "Desactivado: las postulaciones quedan pendientes hasta que las apruebes aquí."}
+          </p>
+        </div>
+        <label className="flex cursor-pointer items-center gap-3">
+          <span className="text-sm">{settings.autoApprove ? "Al instante" : "Con revisión"}</span>
+          <input
+            type="checkbox"
+            role="switch"
+            className="peer sr-only"
+            checked={settings.autoApprove}
+            onChange={(e) => saveSettings({ autoApprove: e.target.checked }).catch((err) => setError(friendlyError(err)))}
+          />
+          <span className="relative h-7 w-12 rounded-full bg-white/15 transition after:absolute after:left-1 after:top-1 after:h-5 after:w-5 after:rounded-full after:bg-paper after:transition peer-checked:bg-neon peer-checked:after:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-neon" />
+        </label>
+      </section>
 
       {error && <Notice tone="error">{error}</Notice>}
 

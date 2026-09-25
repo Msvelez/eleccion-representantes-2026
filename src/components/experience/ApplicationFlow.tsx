@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import type { User } from "firebase/auth";
 import { friendlyError } from "@/lib/auth";
+import { useElection } from "@/hooks/useElection";
 import { getOwnApplication, submitApplication } from "@/lib/data";
 import { storageEnabled } from "@/lib/firebase";
 import type { Candidate, VideoType } from "@/lib/types";
@@ -123,6 +124,7 @@ function TextArea({
 }
 
 function ApplicationForm({ user, onDone }: { user: User & { email: string }; onDone: () => void }) {
+  const { settings } = useElection();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [step, setStep] = useState(0);
   const [errors, setErrors] = useState<Errors>({});
@@ -162,6 +164,7 @@ function ApplicationForm({ user, onDone }: { user: User & { email: string }; onD
           videoLink: form.videoLink,
         },
         (label, pct) => setProgress({ label, pct }),
+        settings.autoApprove,
       );
       onDone();
     } catch (err) {
@@ -389,8 +392,17 @@ function ApplicationForm({ user, onDone }: { user: User & { email: string }; onD
                 )}
 
                 <div className="glass rounded-2xl p-4 text-sm text-muted">
-                  Al enviar, tu postulación queda <strong className="font-medium text-paper">en revisión</strong>. El
-                  comité del programa la aprobará antes de que aparezcas en la pantalla de candidatos.
+                  {settings.autoApprove ? (
+                    <>
+                      Al enviar, tu tarjeta aparece <strong className="font-medium text-paper">al instante</strong> en la
+                      sala de candidatos de la página principal.
+                    </>
+                  ) : (
+                    <>
+                      Al enviar, tu postulación queda <strong className="font-medium text-paper">en revisión</strong>. El
+                      comité del programa la aprobará antes de que aparezcas en la pantalla de candidatos.
+                    </>
+                  )}
                 </div>
               </fieldset>
             )}
@@ -434,7 +446,7 @@ function ApplicationForm({ user, onDone }: { user: User & { email: string }; onD
 function ExistingApplication({ candidate }: { candidate: Candidate }) {
   const status = {
     pending: { label: "En revisión", tone: "text-magenta-soft", text: "El comité está revisando tu postulación." },
-    approved: { label: "Aprobada", tone: "text-neon", text: "¡Ya eres parte del roster de candidatos!" },
+    approved: { label: "En la sala", tone: "text-neon", text: "¡Ya estás en la sala de candidatos esperando la votación!" },
     rejected: {
       label: "No aprobada",
       tone: "text-danger",
@@ -455,6 +467,7 @@ function ExistingApplication({ candidate }: { candidate: Candidate }) {
 }
 
 function Success() {
+  const { settings } = useElection();
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -472,10 +485,22 @@ function Success() {
         ✓
       </motion.div>
       <span className="label-hud text-neon">Personaje creado</span>
-      <h3 className="text-3xl sm:text-4xl">¡Tu postulación fue enviada!</h3>
-      <p className="mx-auto max-w-md text-muted">
-        La revisaremos y te avisaremos por correo. Si es aprobada, aparecerás en la pantalla de selección de candidatos.
-      </p>
+      {settings.autoApprove ? (
+        <>
+          <h3 className="text-3xl sm:text-4xl">¡Ya estás en la sala de candidatos!</h3>
+          <p className="mx-auto max-w-md text-muted">
+            Tu tarjeta ya aparece en la página principal junto a los demás candidatos, lista para la votación. Cierra esta
+            ventana para verla.
+          </p>
+        </>
+      ) : (
+        <>
+          <h3 className="text-3xl sm:text-4xl">¡Tu postulación fue enviada!</h3>
+          <p className="mx-auto max-w-md text-muted">
+            La revisaremos pronto. Si es aprobada, aparecerás en la sala de candidatos de la página principal.
+          </p>
+        </>
+      )}
     </motion.div>
   );
 }

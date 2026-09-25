@@ -73,6 +73,21 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ───────────── Correo privado de cada postulante ─────────────
+    // Separado de la tarjeta pública para que el correo no quede expuesto.
+    match /candidateContacts/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create: if institutional()
+        && applicationsOpen()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['email', 'createdAt'])
+        && request.resource.data.email == userEmail()
+        && request.resource.data.createdAt == request.time
+        && !exists(/databases/$(database)/documents/candidates/$(uid))
+        && existsAfter(/databases/$(database)/documents/candidates/$(uid));
+      allow update, delete: if isAdmin();
+    }
+
     // ───────────── Candidatos ─────────────
     // El id del documento es el uid del postulante → una postulación por cuenta.
     match /candidates/{uid} {
@@ -84,12 +99,15 @@ service cloud.firestore {
         && applicationsOpen()
         && request.auth.uid == uid
         && request.resource.data.keys().hasOnly([
-          'uid', 'name', 'semester', 'email', 'photoURL', 'photoPath', 'instagram',
+          'uid', 'name', 'semester', 'photoURL', 'photoPath', 'instagram',
           'motivation', 'contribution', 'videoURL', 'videoPath', 'videoType', 'status', 'createdAt'
         ])
         && request.resource.data.uid == uid
-        && request.resource.data.email == userEmail()
-        && request.resource.data.status == 'pending'
+        // Se crea junto con su correo privado, en el mismo lote.
+        && getAfter(/databases/$(database)/documents/candidateContacts/$(uid)).data.email == userEmail()
+        // Pendiente de revisión, o publicada al instante si administración activó la aprobación automática.
+        && (request.resource.data.status == 'pending'
+          || (request.resource.data.status == 'approved' && settings().get('autoApprove', true) == true))
         && request.resource.data.createdAt == request.time
         && validString(request.resource.data.name, 3, 80)
         && request.resource.data.semester is int

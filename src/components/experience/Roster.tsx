@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { Candidate } from "@/lib/types";
 import { Modal } from "@/components/ui/Modal";
 import { CandidateCard } from "./CandidateCard";
@@ -22,8 +22,23 @@ function UnlockingCard({ children, index }: { children: React.ReactNode; index: 
   );
 }
 
-/** Galería de exploración de perfiles (fase de presentación). */
-export function Roster({ candidates }: { candidates: Candidate[] }) {
+/**
+ * Galería de exploración de perfiles (sala de candidatos y fase de presentación).
+ * @param badge etiqueta en cada tarjeta, p. ej. "Listo"
+ * @param idle las tarjetas flotan suavemente, como personajes esperando
+ * @param trailing elemento extra al final de la cuadrícula (p. ej. un espacio libre)
+ */
+export function Roster({
+  candidates,
+  badge,
+  idle,
+  trailing,
+}: {
+  candidates: Candidate[];
+  badge?: string;
+  idle?: boolean;
+  trailing?: ReactNode;
+}) {
   const [selected, setSelected] = useState<number | null>(null);
   const current = selected === null ? null : candidates[selected];
 
@@ -32,9 +47,21 @@ export function Roster({ candidates }: { candidates: Candidate[] }) {
       <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
         {candidates.map((c, i) => (
           <UnlockingCard key={c.id} index={i}>
-            <CandidateCard candidate={c} index={i} active={selected === i} onSelect={() => setSelected(i)} />
+            <div
+              className={idle ? "motion-safe:animate-float" : undefined}
+              style={idle ? { animationDelay: `${(i % 5) * -1.4}s` } : undefined}
+            >
+              <CandidateCard
+                candidate={c}
+                index={i}
+                badge={badge}
+                active={selected === i}
+                onSelect={() => setSelected(i)}
+              />
+            </div>
           </UnlockingCard>
         ))}
+        {trailing && <li>{trailing}</li>}
       </ul>
 
       <Modal

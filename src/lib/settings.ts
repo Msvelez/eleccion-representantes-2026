@@ -34,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   resultsPublished: false,
   seats: 2,
   allowAnyEmail: true,
+  autoApprove: true,
   emailDomains: ["unbosque.edu.co"],
   restrictToRoll: false,
   eligibleVoters: 0,

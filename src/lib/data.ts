@@ -48,6 +48,7 @@ function toSettings(data: DocumentData | undefined): Settings {
     resultsPublished: data.resultsPublished ?? false,
     seats: data.seats ?? DEFAULT_SETTINGS.seats,
     allowAnyEmail: data.allowAnyEmail ?? true,
+    autoApprove: data.autoApprove ?? true,
     emailDomains: data.emailDomains ?? DEFAULT_SETTINGS.emailDomains,
     restrictToRoll: data.restrictToRoll ?? false,
     eligibleVoters: data.eligibleVoters ?? 0,
@@ -110,16 +111,38 @@ export function watchApprovedCandidates(
   );
 }
 
+/**
+ * Todos los candidatos con su correo (solo administración). El correo vive aparte, en
+ * candidateContacts, para que no sea público aunque la tarjeta del candidato sí lo sea.
+ */
 export function watchAllCandidates(
   onChange: (c: Candidate[]) => void,
   onError: (e: Error) => void,
 ): Unsubscribe {
   const { db } = firebase();
-  return onSnapshot(
+  let candidates: Candidate[] = [];
+  let emails: Record<string, string> = {};
+  const emit = () => onChange(candidates.map((c) => ({ ...c, email: emails[c.id] ?? c.email })));
+  const a = onSnapshot(
     collection(db, "candidates"),
-    (snap) => onChange(snap.docs.map((d) => toCandidate(d.id, d.data())).sort(byName)),
+    (snap) => {
+      candidates = snap.docs.map((d) => toCandidate(d.id, d.data())).sort(byName);
+      emit();
+    },
     onError,
   );
+  const b = onSnapshot(
+    collection(db, "candidateContacts"),
+    (snap) => {
+      emails = Object.fromEntries(snap.docs.map((d) => [d.id, d.data().email ?? ""]));
+      emit();
+    },
+    onError,
+  );
+  return () => {
+    a();
+    b();
+  };
 }
 
 export async function getOwnApplication(uid: string): Promise<Candidate | null> {
@@ -188,6 +211,7 @@ export interface ApplicationInput {
 export async function submitApplication(
   input: ApplicationInput,
   onProgress: (label: string, pct: number) => void,
+  autoApprove: boolean,
 ): Promise<void> {
   const { auth, db } = firebase();
   const user = auth.currentUser;
@@ -211,11 +235,15 @@ export async function submitApplication(
   }
 
   onProgress("Creando tu personaje", 100);
-  await setDoc(doc(db, "candidates", user.uid), {
+  const batch = writeBatch(db);
+  batch.set(doc(db, "candidateContacts", user.uid), {
+    email: user.email.toLowerCase(),
+    createdAt: serverTimestamp(),
+  });
+  batch.set(doc(db, "candidates", user.uid), {
     uid: user.uid,
     name: input.name.trim(),
     semester: input.semester,
-    email: user.email.toLowerCase(),
     photoURL: photo.url,
     photoPath: photo.path,
     instagram: input.instagram.trim().replace(/^@/, ""),
@@ -224,9 +252,10 @@ export async function submitApplication(
     videoURL,
     videoPath,
     videoType: videoURL ? input.videoType : "none",
-    status: "pending",
+    status: autoApprove ? "approved" : "pending",
     createdAt: serverTimestamp(),
   });
+  await batch.commit();
 }
 
 // ───────────── Votos ─────────────

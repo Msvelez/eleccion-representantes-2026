@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Countdown } from "@/components/ui/Countdown";
 import { Modal } from "@/components/ui/Modal";
 import { ApplicationFlow } from "./ApplicationFlow";
+import { Lobby } from "./Lobby";
 
 const MISSIONS = [
   { icon: "◆", title: "Lidera iniciativas", text: "Convierte ideas en proyectos reales para el programa." },
@@ -133,6 +134,8 @@ export function Convocatoria() {
           </motion.li>
         ))}
       </motion.ul>
+
+      <Lobby onJoin={() => setOpen(true)} />
 
       <Modal open={open} onClose={() => setOpen(false)} label="Formulario de postulación" className="sm:max-w-4xl">
         <div className="p-6 sm:p-10">
