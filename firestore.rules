@@ -111,7 +111,7 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && validString(request.resource.data.name, 3, 80)
         && request.resource.data.semester is int
-        && request.resource.data.semester >= 1 && request.resource.data.semester <= 10
+        && request.resource.data.semester >= 1 && request.resource.data.semester <= 5
         && validString(request.resource.data.photoURL, 1, 300000)
         && validString(request.resource.data.motivation, 20, 1500)
         && validString(request.resource.data.contribution, 20, 1500)

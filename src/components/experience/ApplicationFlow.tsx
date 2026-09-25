@@ -18,6 +18,8 @@ const MAX_PHOTO = 5 * 1024 * 1024;
 const MAX_VIDEO = 60 * 1024 * 1024;
 const TEXT_MIN = 20;
 const TEXT_MAX = 1500;
+/** El programa tiene 5 semestres. */
+const MAX_SEMESTER = 5;
 
 const STEPS = [
   { id: "identidad", label: "Identidad" },
@@ -271,7 +273,7 @@ function ApplicationForm({ user, onDone }: { user: User & { email: string }; onD
                 <fieldset className="space-y-2">
                   <legend className="text-sm font-medium">Semestre</legend>
                   <div className="grid grid-cols-5 gap-2">
-                    {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                    {Array.from({ length: MAX_SEMESTER }, (_, i) => i + 1).map((n) => (
                       <label key={n} className="cursor-pointer">
                         <input
                           type="radio"
