@@ -489,7 +489,7 @@ export function ApplicationFlow() {
   return (
     <EmailGate
       returnTo="/?accion=postular"
-      title="Primero, confirma que eres del programa"
+      title="Primero, confirma tu identidad"
       description="Confirma tu correo para crear tu personaje. Así garantizamos que cada postulación es real."
     >
       {(user) => <OwnApplicationCheck user={user} onDone={() => setDone(true)} />}
