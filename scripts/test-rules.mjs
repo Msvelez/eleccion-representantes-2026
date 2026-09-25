@@ -112,6 +112,7 @@ async function setPhase(phase, extra = {}) {
     votingMode: "auto",
     resultsPublished: false,
     seats: 2,
+    allowAnyEmail: false,
     emailDomains: ["unbosque.edu.co"],
     restrictToRoll: false,
     eligibleVoters: 0,
@@ -212,6 +213,15 @@ await expect("Cuenta Microsoft de otro dominio no puede votar", false, () => vot
 const unverified = await asUnverifiedUser("falso@unbosque.edu.co");
 await expect("Correo institucional sin verificar no puede votar", false, () => vote(unverified, "c1"));
 
+// Cualquier correo permitido
+await setPhase("votacion", { allowAnyEmail: true });
+const gmailUser = await asUser("sofi.test@gmail.com");
+await expect("Con 'cualquier correo', un Gmail verificado puede votar", true, () => vote(gmailUser, "c1"));
+await expect("Con 'cualquier correo', el Gmail no vota dos veces", false, () => vote(gmailUser, "c2"));
+const unverified2 = await asUnverifiedUser("falso2@gmail.com");
+await expect("Con 'cualquier correo', un correo sin verificar no vota", false, () => vote(unverified2, "c1"));
+await setPhase("votacion");
+
 // Padrón
 await setPhase("votacion", { restrictToRoll: true });
 const carla = await asUser("carla@unbosque.edu.co");
@@ -240,6 +250,6 @@ await setPhase("votacion", { resultsPublished: true });
 const eva = await asUser("eva@unbosque.edu.co");
 await expect("Con resultados publicados ya no se vota", false, () => vote(eva, "c1"));
 
-for (const u of [ana, beto, intruso, adminUser, carla, dani, eva, msUser, msOutsider, unverified]) await deleteApp(u.app);
+for (const u of [ana, beto, intruso, adminUser, carla, dani, eva, msUser, msOutsider, unverified, gmailUser, unverified2]) await deleteApp(u.app);
 console.log(`\n${passed} pruebas correctas, ${failed} fallidas`);
 process.exit(failed ? 1 : 0);

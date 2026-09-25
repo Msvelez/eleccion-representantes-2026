@@ -218,12 +218,35 @@ export function AccessPanel() {
     <div className="space-y-6">
       <PanelHeader kicker="Seguridad" title="Correos y acceso" />
 
+      <Card className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-xl space-y-1">
+          <h2 className="text-lg">Permitir cualquier correo</h2>
+          <p className="text-sm text-muted">
+            Activado: se puede entrar con Gmail u otro correo, un voto por correo. Desactivado: solo los dominios
+            institucionales de abajo (Outlook de la universidad puede no recibir los enlaces de acceso).
+          </p>
+        </div>
+        <label className="flex cursor-pointer items-center gap-3">
+          <span className="text-sm">{settings.allowAnyEmail ? "Cualquier correo" : "Solo institucional"}</span>
+          <input
+            type="checkbox"
+            role="switch"
+            className="peer sr-only"
+            checked={settings.allowAnyEmail}
+            onChange={(e) => save({ allowAnyEmail: e.target.checked }, setFeedback)}
+          />
+          <span className="relative h-7 w-12 rounded-full bg-white/15 transition after:absolute after:left-1 after:top-1 after:h-5 after:w-5 after:rounded-full after:bg-paper after:transition peer-checked:bg-neon peer-checked:after:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-neon" />
+        </label>
+      </Card>
+
       <Card>
         <form onSubmit={saveDomains} className="grid gap-5 md:grid-cols-2">
           <label className="block space-y-2">
             <span className="text-sm font-medium">Dominios institucionales permitidos</span>
             <input className="field" value={domains} onChange={(e) => setDomains(e.target.value)} placeholder="unbosque.edu.co" />
-            <span className="block text-xs text-muted">Separados por coma. Solo estos correos pueden postularse y votar.</span>
+            <span className="block text-xs text-muted">
+              Separados por coma. Solo aplican si &quot;Permitir cualquier correo&quot; está desactivado.
+            </span>
           </label>
           <label className="block space-y-2">
             <span className="text-sm font-medium">Estudiantes habilitados para votar</span>

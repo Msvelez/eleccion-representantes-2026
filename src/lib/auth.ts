@@ -1,4 +1,5 @@
 import {
+  GoogleAuthProvider,
   isSignInWithEmailLink,
   OAuthProvider,
   sendSignInLinkToEmail,
@@ -51,6 +52,24 @@ export async function completeMagicLink(email: string, href: string): Promise<vo
   }
 }
 
+/** Inicio de sesión con Google (Gmail): entra al instante, sin esperar ningún correo. */
+export const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_SIGNIN === "true";
+
+export async function signInWithGoogle(): Promise<void> {
+  const { auth } = firebase();
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    if ((error as { code?: string }).code === "auth/popup-blocked") {
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+    throw error;
+  }
+}
+
 /**
  * Inicio de sesión con la cuenta Microsoft de la universidad (Outlook institucional).
  * La app registrada en Microsoft Entra es de un solo inquilino: solo cuentas de ese
@@ -77,7 +96,7 @@ export async function signInWithMicrosoft(): Promise<void> {
   }
 }
 
-/** Sesión con correo comprobado: por enlace mágico o por la cuenta Microsoft institucional. */
+/** Sesión con correo comprobado: por Google, por enlace mágico o por la cuenta Microsoft institucional. */
 export function isVerifiedUser(user: User | null): user is User & { email: string } {
   if (!user?.email) return false;
   return user.emailVerified || user.providerData.some((p) => p.providerId === "microsoft.com");
@@ -100,8 +119,8 @@ export function friendlyError(error: unknown): string {
     "auth/network-request-failed": "Sin conexión. Revisa tu internet e inténtalo otra vez.",
     "auth/operation-not-allowed":
       "Este método de acceso no está habilitado en Firebase Authentication (ver README).",
-    "auth/popup-closed-by-user": "Cerraste la ventana de Microsoft antes de terminar. Intenta de nuevo.",
-    "auth/cancelled-popup-request": "Cerraste la ventana de Microsoft antes de terminar. Intenta de nuevo.",
+    "auth/popup-closed-by-user": "Cerraste la ventana de inicio de sesión antes de terminar. Intenta de nuevo.",
+    "auth/cancelled-popup-request": "Cerraste la ventana de inicio de sesión antes de terminar. Intenta de nuevo.",
     "auth/account-exists-with-different-credential":
       "Este correo ya entró antes con enlace por correo. Usa esa misma opción para continuar.",
     "auth/unauthorized-domain": "Este sitio no está autorizado en Firebase Authentication (dominios autorizados).",

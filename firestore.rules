@@ -35,7 +35,7 @@ service cloud.firestore {
     function institutional() {
       let s = settings();
       return verified()
-        && userEmail().split('@')[1] in s.emailDomains
+        && (s.get('allowAnyEmail', true) == true || userEmail().split('@')[1] in s.emailDomains)
         && (s.get('restrictToRoll', false) != true || exists(/databases/$(database)/documents/roll/$(userEmail())));
     }
 

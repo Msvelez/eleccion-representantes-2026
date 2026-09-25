@@ -33,12 +33,15 @@ export const DEFAULT_SETTINGS: Settings = {
   votingMode: "auto",
   resultsPublished: false,
   seats: 2,
+  allowAnyEmail: true,
   emailDomains: ["unbosque.edu.co"],
   restrictToRoll: false,
   eligibleVoters: 0,
 };
 
-export function isInstitutionalEmail(email: string, settings: Settings): boolean {
+/** ¿Este correo puede postularse y votar según la configuración? */
+export function isAllowedEmail(email: string, settings: Settings): boolean {
+  if (settings.allowAnyEmail) return /^[^\s@]+@[^\s@]+$/.test(email.trim());
   const domain = email.trim().toLowerCase().split("@")[1];
   return Boolean(domain) && settings.emailDomains.includes(domain);
 }

@@ -138,7 +138,7 @@ function ConfirmVote({
   );
 }
 
-/** Flujo: verificar correo institucional → comprobar voto previo → confirmar → celebración. */
+/** Flujo: verificar correo → comprobar voto previo → confirmar → celebración. */
 export function VoteFlow({
   candidate,
   candidates,
@@ -153,8 +153,8 @@ export function VoteFlow({
   return (
     <EmailGate
       returnTo={`/?accion=votar&candidato=${encodeURIComponent(candidate.id)}`}
-      title="Confirma tu correo institucional"
-      description={`Para votar por ${candidate.name} te enviaremos un enlace de acceso. Así garantizamos un voto por estudiante.`}
+      title="Confirma tu identidad para votar"
+      description={`Para votar por ${candidate.name} confirma tu correo. Así garantizamos un voto por persona.`}
     >
       {(user) => (
         <ConfirmVote

@@ -56,6 +56,7 @@ batch.set(db.doc("config/settings"), {
   votingMode: "auto",
   resultsPublished: false,
   seats: 2,
+  allowAnyEmail: true,
   emailDomains: ["unbosque.edu.co"],
   restrictToRoll: false,
   eligibleVoters: 320,

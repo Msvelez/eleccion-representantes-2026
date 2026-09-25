@@ -71,7 +71,7 @@ export function Votacion() {
             Elige al próximo <span className="text-gradient">representante</span>
           </h1>
           <p className="max-w-xl text-muted">
-            Explora el roster, abre cada perfil y elige a tu candidato. Tienes un voto por correo institucional.
+            Explora el roster, abre cada perfil y elige a tu candidato. Tienes un voto por persona.
           </p>
           {hasVoted && (
             <p className="label-hud inline-flex items-center gap-2 rounded-full bg-neon px-3 py-1.5 text-void">

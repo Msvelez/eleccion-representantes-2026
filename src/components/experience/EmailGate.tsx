@@ -6,23 +6,36 @@ import type { User } from "firebase/auth";
 import { useElection } from "@/hooks/useElection";
 import {
   friendlyError,
+  googleEnabled,
   isVerifiedUser,
   microsoftEnabled,
   sendMagicLink,
+  signInWithGoogle,
   signInWithMicrosoft,
   signOut,
 } from "@/lib/auth";
-import { isInstitutionalEmail } from "@/lib/settings";
+import { isAllowedEmail } from "@/lib/settings";
 import { Button } from "@/components/ui/Button";
 
 interface EmailGateProps {
   /** Ruta a la que regresa el enlace mágico. */
   returnTo: string;
-  /** Exigir dominio institucional (postulación y voto). */
+  /** Aplicar la restricción de dominios de la configuración (postulación y voto). */
   institutional?: boolean;
   title: string;
   description: string;
   children: (user: User & { email: string }) => ReactNode;
+}
+
+function GoogleLogo() {
+  return (
+    <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden>
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.4-.4-3.5z" />
+      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
+    </svg>
+  );
 }
 
 function MicrosoftLogo() {
@@ -37,8 +50,8 @@ function MicrosoftLogo() {
 }
 
 /**
- * Confirma la identidad con la cuenta Microsoft institucional o con un enlace mágico enviado al correo.
- * Solo cuando el correo está verificado muestra el contenido protegido.
+ * Confirma la identidad con Google, con la cuenta Microsoft institucional o con un enlace mágico
+ * enviado al correo. Solo cuando el correo está verificado muestra el contenido protegido.
  */
 export function EmailGate({ returnTo, institutional = true, title, description, children }: EmailGateProps) {
   const { user, authLoading, settings } = useElection();
@@ -46,15 +59,19 @@ export function EmailGate({ returnTo, institutional = true, title, description, 
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const [signingIn, setSigningIn] = useState(false);
-  const [showEmail, setShowEmail] = useState(!microsoftEnabled);
+  const [signingIn, setSigningIn] = useState<"google" | "microsoft" | null>(null);
+
+  const restricted = institutional && !settings.allowAnyEmail;
+  const showGoogle = googleEnabled && !restricted;
+  const hasProviders = showGoogle || microsoftEnabled;
+  const [showEmail, setShowEmail] = useState(!hasProviders);
 
   if (authLoading) {
     return <div className="grid place-items-center p-10 label-hud text-muted">Cargando…</div>;
   }
 
   if (isVerifiedUser(user)) {
-    if (institutional && !isInstitutionalEmail(user.email, settings)) {
+    if (institutional && !isAllowedEmail(user.email, settings)) {
       return (
         <div className="space-y-4 p-2 text-center">
           <p className="text-lg">
@@ -72,15 +89,15 @@ export function EmailGate({ returnTo, institutional = true, title, description, 
 
   const domains = settings.emailDomains.map((d) => `@${d}`).join(" o ");
 
-  async function microsoft() {
+  async function withProvider(kind: "google" | "microsoft") {
     setError(null);
-    setSigningIn(true);
+    setSigningIn(kind);
     try {
-      await signInWithMicrosoft();
+      await (kind === "google" ? signInWithGoogle() : signInWithMicrosoft());
     } catch (err) {
       setError(friendlyError(err));
     } finally {
-      setSigningIn(false);
+      setSigningIn(null);
     }
   }
 
@@ -92,7 +109,7 @@ export function EmailGate({ returnTo, institutional = true, title, description, 
       setError("Escribe un correo válido.");
       return;
     }
-    if (institutional && !isInstitutionalEmail(value, settings)) {
+    if (institutional && !isAllowedEmail(value, settings)) {
       setError(`Usa tu correo institucional (${domains}).`);
       return;
     }
@@ -130,13 +147,16 @@ export function EmailGate({ returnTo, institutional = true, title, description, 
             <p className="label-hud mb-2 text-neon">¿No lo ves? Puede tardar unos minutos</p>
             <ul className="list-disc space-y-1 pl-5 text-muted">
               <li>
-                Busca en <strong className="font-medium text-paper">Correo no deseado</strong> y en la pestaña{" "}
-                <strong className="font-medium text-paper">Otros</strong> de Outlook.
+                Busca en <strong className="font-medium text-paper">Spam</strong> o{" "}
+                <strong className="font-medium text-paper">Correo no deseado</strong>.
               </li>
               <li>
-                Lo envía <strong className="font-medium text-paper">noreply@{process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "firebaseapp.com"}</strong>
+                Lo envía{" "}
+                <strong className="font-medium text-paper">
+                  noreply@{process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "firebaseapp.com"}
+                </strong>
               </li>
-              <li>Si está en no deseado, márcalo como seguro y abre el enlace desde ahí.</li>
+              <li>Los correos de la universidad (Outlook) pueden no recibirlo: usa mejor un Gmail.</li>
             </ul>
           </div>
           <div className="flex flex-wrap justify-center gap-3">
@@ -178,61 +198,84 @@ export function EmailGate({ returnTo, institutional = true, title, description, 
             <h3 className="text-2xl sm:text-3xl">{title}</h3>
             <p className="text-muted">{description}</p>
           </div>
-          {microsoftEnabled && (
+
+          {hasProviders && (
             <div className="space-y-3">
-              <Button
-                type="button"
-                variant="ghost"
-                size="lg"
-                loading={signingIn}
-                onClick={microsoft}
-                className="w-full bg-paper! text-void! hover:bg-mist!"
-              >
-                <MicrosoftLogo />
-                Entrar con mi cuenta de la universidad
-              </Button>
-              <p className="text-center text-xs text-muted">
-                Usa tu correo y contraseña de Outlook institucional (@{settings.emailDomains[0]}).
-              </p>
+              {showGoogle && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="lg"
+                  loading={signingIn === "google"}
+                  disabled={signingIn !== null}
+                  onClick={() => withProvider("google")}
+                  className="w-full bg-paper! text-void! hover:bg-mist!"
+                >
+                  <GoogleLogo />
+                  Continuar con Google
+                </Button>
+              )}
+              {microsoftEnabled && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="lg"
+                  loading={signingIn === "microsoft"}
+                  disabled={signingIn !== null}
+                  onClick={() => withProvider("microsoft")}
+                  className="w-full bg-paper! text-void! hover:bg-mist!"
+                >
+                  <MicrosoftLogo />
+                  Entrar con mi cuenta de la universidad
+                </Button>
+              )}
               {!showEmail && (
                 <button
                   type="button"
                   onClick={() => setShowEmail(true)}
                   className="mx-auto block text-xs text-muted underline-offset-4 hover:text-paper hover:underline"
                 >
-                  ¿Problemas? Recibir un enlace por correo
+                  ¿No tienes Google? Recibir un enlace por correo
                 </button>
               )}
             </div>
           )}
-          {microsoftEnabled && showEmail && (
+
+          {hasProviders && showEmail && (
             <div className="flex items-center gap-3 text-xs text-muted" aria-hidden>
               <span className="h-px flex-1 bg-white/10" />o recibe un enlace por correo
               <span className="h-px flex-1 bg-white/10" />
             </div>
           )}
+
           {showEmail && (
-          <>
-          <label className="block space-y-2">
-            <span className="text-sm font-medium">Correo {institutional ? "institucional" : ""}</span>
-            <input
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={institutional ? `tuusuario@${settings.emailDomains[0]}` : "tu@correo.com"}
-              className="field"
-              aria-invalid={Boolean(error)}
-              aria-describedby={error ? "email-error" : undefined}
-            />
-          </label>
-          <Button type="submit" variant={microsoftEnabled ? "ghost" : "primary"} loading={sending} className="w-full sm:w-auto">
-            Enviarme el enlace de acceso
-          </Button>
-          </>
+            <>
+              <label className="block space-y-2">
+                <span className="text-sm font-medium">Correo {restricted ? "institucional" : ""}</span>
+                <input
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={restricted ? `tuusuario@${settings.emailDomains[0]}` : "tucorreo@gmail.com"}
+                  className="field"
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? "email-error" : undefined}
+                />
+              </label>
+              <Button
+                type="submit"
+                variant={hasProviders ? "ghost" : "primary"}
+                loading={sending}
+                className="w-full sm:w-auto"
+              >
+                Enviarme el enlace de acceso
+              </Button>
+            </>
           )}
+
           {error && (
             <p id="email-error" role="alert" className="text-sm text-danger">
               {error}

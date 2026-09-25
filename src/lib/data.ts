@@ -47,6 +47,7 @@ function toSettings(data: DocumentData | undefined): Settings {
     votingMode: data.votingMode ?? DEFAULT_SETTINGS.votingMode,
     resultsPublished: data.resultsPublished ?? false,
     seats: data.seats ?? DEFAULT_SETTINGS.seats,
+    allowAnyEmail: data.allowAnyEmail ?? true,
     emailDomains: data.emailDomains ?? DEFAULT_SETTINGS.emailDomains,
     restrictToRoll: data.restrictToRoll ?? false,
     eligibleVoters: data.eligibleVoters ?? 0,
@@ -190,7 +191,7 @@ export async function submitApplication(
 ): Promise<void> {
   const { auth, db } = firebase();
   const user = auth.currentUser;
-  if (!user?.email) throw new Error("Debes verificar tu correo institucional antes de postularte.");
+  if (!user?.email) throw new Error("Debes confirmar tu correo antes de postularte.");
 
   onProgress("Preparando foto", 0);
   const photo = storageEnabled
@@ -245,7 +246,7 @@ export async function getOwnVote(email: string): Promise<Vote | null> {
 export async function castVote(candidateId: string): Promise<void> {
   const { auth, db } = firebase();
   const user = auth.currentUser;
-  if (!user?.email) throw new Error("Debes confirmar tu correo institucional antes de votar.");
+  if (!user?.email) throw new Error("Debes confirmar tu correo antes de votar.");
   const email = user.email.toLowerCase();
 
   const batch = writeBatch(db);

@@ -17,6 +17,8 @@ export interface Settings {
   resultsPublished: boolean;
   /** Número de representantes a elegir. */
   seats: number;
+  /** Si es true, se acepta cualquier correo verificado (Gmail, etc.); si no, solo los dominios de emailDomains. */
+  allowAnyEmail: boolean;
   /** Dominios de correo institucional permitidos (sin @). */
   emailDomains: string[];
   /** Si es true, solo los correos cargados en el padrón pueden postularse y votar. */
