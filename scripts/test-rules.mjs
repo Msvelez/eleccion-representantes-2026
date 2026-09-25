@@ -261,7 +261,7 @@ console.log("\n— Administración");
 await expect("Admin lee conteos", true, () => getDoc(doc(adminUser.db, "tallies", "c1")));
 await expect("Admin lee todos los votos", true, () => getDocs(collection(adminUser.db, "votes")));
 await expect("Admin aprueba candidatos", true, () => updateDoc(doc(adminUser.db, "candidates", ana.uid), { status: "approved" }));
-await expect("Admin no puede borrar votos", false, () => writeBatch(adminUser.db).delete(doc(adminUser.db, "votes", ana.email)).commit());
+await expect("Admin no puede borrar votos con la votación abierta", false, () => writeBatch(adminUser.db).delete(doc(adminUser.db, "votes", ana.email)).commit());
 await expect("Admin publica resultados", true, () =>
   setDoc(doc(adminUser.db, "public", "results"), { winners: [], totalVotes: 4, publishedAt: serverTimestamp() }),
 );
@@ -269,6 +269,15 @@ await expect("Público lee resultados", true, () => getDoc(doc(beto.db, "public"
 await setPhase("votacion", { resultsPublished: true });
 const eva = await asUser("eva@unbosque.edu.co");
 await expect("Con resultados publicados ya no se vota", false, () => vote(eva, "c1"));
+await expect("Estudiante no puede borrar votos (reinicio)", false, () =>
+  writeBatch(beto.db).delete(doc(beto.db, "votes", beto.email)).commit(),
+);
+await expect("Admin puede reiniciar: borrar votos y conteos con la votación cerrada", true, () =>
+  writeBatch(adminUser.db)
+    .delete(doc(adminUser.db, "votes", ana.email))
+    .delete(doc(adminUser.db, "tallies", "c1"))
+    .commit(),
+);
 
 for (const u of [ana, beto, intruso, adminUser, carla, dani, eva, msUser, msOutsider, unverified, gmailUser, unverified2]) await deleteApp(u.app);
 console.log(`\n${passed} pruebas correctas, ${failed} fallidas`);

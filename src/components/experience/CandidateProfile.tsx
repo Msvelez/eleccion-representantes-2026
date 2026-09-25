@@ -50,7 +50,7 @@ function Block({ label, children, delay }: { label: string; children: ReactNode;
       className="space-y-2"
     >
       <h3 className="label-hud text-neon">{label}</h3>
-      <div className="whitespace-pre-line leading-relaxed text-paper/90">{children}</div>
+      <div className="whitespace-pre-line leading-relaxed text-paper/90 [overflow-wrap:anywhere]">{children}</div>
     </motion.section>
   );
 }
@@ -78,10 +78,10 @@ export function CandidateProfile({
         </span>
       </motion.div>
 
-      <div className="space-y-7 p-6 sm:p-8">
+      <div className="min-w-0 space-y-7 p-6 sm:p-8">
         <motion.header initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-3 pr-10">
           <p className="label-hud text-magenta-soft">Semestre {String(candidate.semester).padStart(2, "0")}</p>
-          <h2 className="text-3xl leading-tight sm:text-4xl">{candidate.name}</h2>
+          <h2 className="text-3xl leading-tight [overflow-wrap:anywhere] sm:text-4xl">{candidate.name}</h2>
           {candidate.instagram && (
             <a
               href={`https://instagram.com/${candidate.instagram}`}

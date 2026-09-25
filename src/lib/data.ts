@@ -370,6 +370,38 @@ export async function publishResults(winners: Winner[], totalVotes: number): Pro
   await batch.commit();
 }
 
+async function deleteCollection(name: string): Promise<number> {
+  const { db } = firebase();
+  const snap = await getDocs(collection(db, name));
+  for (let i = 0; i < snap.docs.length; i += 450) {
+    const batch = writeBatch(db);
+    snap.docs.slice(i, i + 450).forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+  return snap.size;
+}
+
+/**
+ * Reinicia la elección tras una prueba: borra votos, conteos y resultados publicados
+ * (y, si se pide, las postulaciones) y vuelve la votación a modo automático.
+ * Las reglas solo lo permiten con la votación cerrada.
+ */
+export async function resetElection(removeCandidates: boolean): Promise<{ votes: number; candidates: number }> {
+  const { db } = firebase();
+  const votes = await deleteCollection("votes");
+  await deleteCollection("tallies");
+  const batch = writeBatch(db);
+  batch.delete(doc(db, "public", "results"));
+  await batch.commit();
+  let candidates = 0;
+  if (removeCandidates) {
+    candidates = await deleteCollection("candidates");
+    await deleteCollection("candidateContacts");
+  }
+  await saveSettings({ resultsPublished: false, votingMode: "auto" });
+  return { votes, candidates };
+}
+
 export async function unpublishResults(): Promise<void> {
   await saveSettings({ resultsPublished: false });
 }

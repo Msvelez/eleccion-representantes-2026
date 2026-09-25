@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { useElection } from "@/hooks/useElection";
 import { friendlyError } from "@/lib/auth";
-import { countRoll, importRoll, saveSettings } from "@/lib/data";
+import { countRoll, importRoll, resetElection, saveSettings } from "@/lib/data";
+import { computePhase } from "@/lib/phase";
 import { fromBogotaInput, toBogotaInput } from "@/lib/settings";
 import type { Settings, VotingMode } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
@@ -169,7 +170,63 @@ export function VotingPanel() {
           <Notice tone={feedback.tone}>{feedback.text}</Notice>
         </div>
       )}
+      <ResetCard />
     </div>
+  );
+}
+
+/** Borra los datos de una prueba (votos, conteos, resultados y opcionalmente postulaciones). */
+function ResetCard() {
+  const { settings } = useElection();
+  const votingNow = computePhase(settings, new Date()) === "votacion";
+  const [removeCandidates, setRemoveCandidates] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback>(null);
+
+  async function reset() {
+    const what = removeCandidates ? "los votos, los resultados y TODAS las postulaciones" : "los votos y los resultados";
+    if (!window.confirm(`Se borrarán ${what}. Esto no se puede deshacer. ¿Continuar?`)) return;
+    setBusy(true);
+    setFeedback(null);
+    try {
+      const { votes, candidates } = await resetElection(removeCandidates);
+      setFeedback({
+        tone: "ok",
+        text: `Elección reiniciada: ${votes} votos borrados${
+          removeCandidates ? ` y ${candidates} postulaciones` : ""
+        }. La página vuelve a la fase que corresponda según las fechas.`,
+      });
+    } catch (err) {
+      setFeedback({ tone: "error", text: friendlyError(err) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="mt-8 space-y-4 ring-1 ring-danger/30">
+      <div className="space-y-1">
+        <h2 className="text-lg">Reiniciar elección</h2>
+        <p className="text-sm text-muted">
+          Úsalo después de una prueba: borra todos los votos, los conteos y los resultados publicados, y la página vuelve a
+          la fase que corresponda según las fechas. No se puede usar con la votación abierta.
+        </p>
+      </div>
+      <label className="flex cursor-pointer items-center gap-3 text-sm">
+        <input
+          type="checkbox"
+          checked={removeCandidates}
+          onChange={(e) => setRemoveCandidates(e.target.checked)}
+          className="h-5 w-5 accent-[var(--color-danger)]"
+        />
+        Borrar también todas las postulaciones (la sala de candidatos queda vacía)
+      </label>
+      {votingNow && <Notice tone="error">La votación está abierta: ciérrala antes de reiniciar.</Notice>}
+      {feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}
+      <Button variant="danger" onClick={reset} loading={busy} disabled={votingNow}>
+        Reiniciar elección
+      </Button>
+    </Card>
   );
 }
 

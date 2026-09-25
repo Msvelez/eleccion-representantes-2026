@@ -82,7 +82,7 @@ export function Modal({ open, onClose, label, children, className }: ModalProps)
             exit={{ y: 40, opacity: 0, scale: 0.97 }}
             transition={{ type: "spring", damping: 26, stiffness: 260 }}
             className={clsx(
-              "glass relative max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-plum/80 outline-none sm:rounded-3xl",
+              "glass relative max-h-[92dvh] w-full overflow-x-hidden overflow-y-auto rounded-t-3xl bg-plum/80 outline-none sm:rounded-3xl",
               className ?? "sm:max-w-3xl",
             )}
           >

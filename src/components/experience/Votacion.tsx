@@ -116,7 +116,7 @@ export function Votacion() {
                     <div className="space-y-3">
                       <p className="label-hud text-magenta-soft">Semestre {String(current.semester).padStart(2, "0")}</p>
                       <h2 className="text-3xl leading-tight">{current.name}</h2>
-                      <p className="line-clamp-6 text-sm leading-relaxed text-paper/80">{current.contribution}</p>
+                      <p className="line-clamp-6 text-sm leading-relaxed text-paper/80 [overflow-wrap:anywhere]">{current.contribution}</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
                       <Button variant="ghost" onClick={() => setMode("profile")}>
